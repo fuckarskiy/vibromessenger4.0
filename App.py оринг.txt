@@ -1,0 +1,137 @@
+import os, sqlite3, hashlib
+from flask import Flask, request, jsonify, render_template, session
+
+app = Flask(__name__)
+app.secret_key = "vibro-secret"
+
+AVATARS = "static/avatars"
+os.makedirs(AVATARS, exist_ok=True)
+
+# ===== DB =====
+def db():
+    c = sqlite3.connect("database.db")
+    c.row_factory = sqlite3.Row
+    return c
+
+def h(p):
+    return hashlib.sha256(p.encode()).hexdigest()
+
+# ===== INIT =====
+def init():
+    c = db()
+    cur = c.cursor()
+    cur.executescript("""
+    CREATE TABLE IF NOT EXISTS users(
+        id INTEGER PRIMARY KEY,
+        username TEXT UNIQUE,
+        password TEXT,
+        avatar TEXT DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS messages(
+        id INTEGER PRIMARY KEY,
+        sender TEXT,
+        receiver TEXT,
+        text TEXT,
+        time DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+    c.commit()
+    c.close()
+init()
+
+# ===== FRONT =====
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+# ===== AUTH =====
+@app.route("/register", methods=["POST"])
+def register():
+    d = request.json
+    try:
+        c = db()
+        c.execute("INSERT INTO users VALUES(NULL, ?, ?, '')", (d["username"], h(d["password"])))
+        c.commit()
+        c.close()
+        session["user"] = d["username"]
+        return {"ok": True}
+    except:
+        return {"error": "exists"}, 400
+
+@app.route("/login", methods=["POST"])
+def login():
+    d = request.json
+    c = db()
+    u = c.execute("SELECT username FROM users WHERE username=? AND password=?",
+                  (d["username"], h(d["password"]))).fetchone()
+    c.close()
+    if not u: return {"error": "bad"}, 401
+    session["user"] = u["username"]
+    return {"ok": True}
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return {"ok": True}
+
+# ===== PROFILE =====
+@app.route("/profile")
+def profile():
+    if "user" not in session: return {"error": "auth"}, 401
+    c = db()
+    r = c.execute("SELECT username, avatar FROM users WHERE username=?", (session["user"],)).fetchone()
+    c.close()
+    return dict(r)
+
+@app.route("/profile/avatar", methods=["POST"])
+def avatar():
+    if "user" not in session: return {"error": "auth"}, 401
+    f = request.files.get("avatar")
+    if not f: return {"error": "no file"}, 400
+    ext = f.filename.rsplit(".", 1)[-1]
+    name = f"{session['user']}.{ext}"
+    path = f"{AVATARS}/{name}"
+    f.save(path)
+    c = db()
+    c.execute("UPDATE users SET avatar=? WHERE username=?", (path, session["user"]))
+    c.commit()
+    c.close()
+    return {"ok": True, "avatar": path}
+
+# ===== SEARCH =====
+@app.route("/search")
+def search():
+    q = request.args.get("q", "")
+    c = db()
+    r = c.execute("SELECT username FROM users WHERE username LIKE ? LIMIT 20", (f"%{q}%",)).fetchall()
+    c.close()
+    return jsonify([x["username"] for x in r])
+
+# ===== DM =====
+@app.route("/dm/send", methods=["POST"])
+def send():
+    if "user" not in session: return {"error": "auth"}, 401
+    d = request.json
+    c = db()
+    c.execute("INSERT INTO messages(sender, receiver, text) VALUES(?, ?, ?)",
+              (session["user"], d["to"], d["text"]))
+    c.commit()
+    c.close()
+    return {"ok": True}
+
+@app.route("/dm/history")
+def history():
+    if "user" not in session: return {"error": "auth"}, 401
+    u = session["user"]
+    v = request.args["with"]
+    c = db()
+    r = c.execute("""SELECT sender, text, time FROM messages
+                     WHERE (sender=? AND receiver=?) OR (sender=? AND receiver=?)
+                     ORDER BY id""", (u, v, v, u)).fetchall()
+    c.close()
+    return jsonify([dict(x) for x in r])
+
+# ===== RUN =====
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
