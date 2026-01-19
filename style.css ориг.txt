@@ -1,0 +1,31 @@
+body {
+    margin:0;
+    font-family: Arial, sans-serif;
+    background:#0d0d0d;
+    color:#eee;
+}
+
+.step { display:none; padding:20px; }
+.step.active { display:block; }
+
+h1,h2 { font-weight:bold; }
+
+input, select, button {
+    font-size:16px;
+    padding:10px;
+    margin:5px 0;
+    border-radius:5px;
+    border:none;
+    font-weight:bold;
+}
+
+input, select { width:100%; box-sizing:border-box; }
+button { background:#8e2de2; color:#fff; cursor:pointer; }
+button:hover { background:#5a0fae; }
+
+#messages { border:1px solid #444; padding:10px; height:200px; overflow-y:auto; margin:10px 0; }
+
+.me { text-align:right; color:#8e2de2; }
+.other { text-align:left; color:#eee; }
+
+#avatar { width:80px; height:80px; border-radius:50%; margin:10px 0; }
