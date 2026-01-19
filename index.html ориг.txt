@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vibro Messenger</title>
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+
+<div id="root">
+
+  <!-- STEP 1: Ввод имени -->
+  <div id="step1" class="step active">
+    <h1>Vibro Messenger</h1>
+    <input id="username" placeholder="Введите имя или номер">
+    <button id="nextBtn">Далее</button>
+  </div>
+
+  <!-- STEP 2: Ввод пароля -->
+  <div id="step2" class="step">
+    <input id="password" type="password" placeholder="Введите пароль">
+    <button id="confirmBtn">Подтвердить</button>
+  </div>
+
+  <!-- STEP 3: Чат -->
+  <div id="chatMenu" class="step">
+    <div id="chatHeader">
+      <span>Чат</span>
+      <button id="profileBtn">Профиль</button>
+    </div>
+
+    <select id="userSelect">
+      <option value="">Выберите пользователя</option>
+    </select>
+
+    <div id="messages"></div>
+    <input id="msgInput" placeholder="Написать сообщение">
+    <button id="sendBtn">Отправить</button>
+  </div>
+
+  <!-- STEP 4: Профиль -->
+  <div id="profileMenu" class="step">
+    <h2>Профиль</h2>
+    <img id="avatar" src="static/avatars/default.png">
+    <span id="userLabel"></span>
+    <input type="file" id="avatarFile">
+    <button id="updateAvatar">Загрузить аватар</button>
+    <button id="backChat">Назад в чат</button>
+  </div>
+
+</div>
+
+<script src="static/script.js"></script>
+</body>
+</html>
